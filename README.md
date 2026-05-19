@@ -25,6 +25,8 @@ A simple Node.js chatbot using LangChain and OpenAI.
 
 This project loads credentials and connection settings from `.env`.
 
+Copy `.env.example` to `.env` and fill in your own values.
+
 Required variables:
 
 - `OPEN_KEY` — OpenAI API key used by the OpenAI fallback path

@@ -53,3 +53,4 @@ Behavior:
 - `POST /upload` stores documents in MongoDB Atlas with embeddings
 - `GET /documents` lists uploaded documents
 - `POST /chat` performs retrieval from MongoDB and enriches the model prompt with nearest document text
+

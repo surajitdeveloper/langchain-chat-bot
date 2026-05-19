@@ -23,13 +23,29 @@ A simple Node.js chatbot using LangChain and OpenAI.
 
 ## Environment
 
-This project loads credentials from `.env`.
+This project loads credentials and connection settings from `.env`.
 
-- `OPEN_KEY` for OpenAI
-- `GEMINI_KEY` for Google Gemini / Google Generative AI
-- `MONGODB_URI` for MongoDB Atlas persistence
+Required variables:
 
-If `GEMINI_KEY` is present, the bot will use the Google Gemini model first. Otherwise it will default to OpenAI.
+- `OPEN_KEY` — OpenAI API key used by the OpenAI fallback path
+- `GEMINI_KEY` — Google Gemini / Google Generative AI API key
+- `MONGODB_URI` — MongoDB Atlas connection string
+
+Optional variables:
+
+- `GEMINI_ENDPOINT` — Gemini API endpoint URL, for example `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent`
+- `GEMINI_API_VERSION` — Gemini API version override, for example `v1`
+- `GEMINI_MODEL` — Gemini model name to use, for example `gemini-1.5-flash`
+- `GEMINI_EMBEDDING_MODEL` — Gemini embedding model name to use; default is `gemini-embedding-001`
+- `OPENAI_ENDPOINT` — OpenAI base endpoint URL, for example `https://api.openai.com`
+- `MONGODB_DB` — MongoDB database name (default: `chatbot`)
+- `MONGODB_COLLECTION` — MongoDB collection name for documents (default: `documents`)
+- `PORT` — server port (default: `3000`)
+
+Behavior:
+
+- If `GEMINI_KEY` is provided, the app attempts Gemini first for chat and embeddings.
+- If Gemini chat fails, the app falls back to OpenAI automatically when `OPEN_KEY` is available.
 
 ## Features
 

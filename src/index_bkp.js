@@ -4,16 +4,39 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { MongoClient } from "mongodb";
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
+import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 
 dotenv.config();
 
 const openAiKey = process.env.OPEN_KEY;
+const geminiKey = process.env.GEMINI_KEY;
+const geminiEndpoint = process.env.GEMINI_ENDPOINT;
+const geminiApiVersion = process.env.GEMINI_API_VERSION;
+const geminiModel = process.env.GEMINI_MODEL;
 const mongoUri = process.env.MONGODB_URI;
 const mongoDbName = process.env.MONGODB_DB || "chatbot";
 const mongoCollection = process.env.MONGODB_COLLECTION || "documents";
 
-if (!openAiKey) {
-  throw new Error("Missing OPEN_KEY in .env");
+let geminiBaseUrl;
+let parsedGeminiModel;
+let parsedGeminiApiVersion;
+
+if (geminiEndpoint) {
+  try {
+    const parsedUrl = new URL(geminiEndpoint);
+    geminiBaseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
+    const endpointMatch = parsedUrl.pathname.match(/^\/([^/]+)\/models\/([^:]+):([^/]+)$/);
+    if (endpointMatch) {
+      parsedGeminiApiVersion = endpointMatch[1];
+      parsedGeminiModel = endpointMatch[2];
+      if (parsedGeminiModel.endsWith("-exp")) {
+        parsedGeminiModel = parsedGeminiModel.replace(/-exp$/, "");
+        console.warn(`GEMINI_ENDPOINT model uses an experimental suffix; falling back to ${parsedGeminiModel}`);
+      }
+    }
+  } catch (error) {
+    throw new Error("Invalid GEMINI_ENDPOINT in .env");
+  }
 }
 
 if (!mongoUri) {
@@ -27,11 +50,38 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
+const model = buildModel();
 const openAiModel = buildOpenAIModel();
 const embeddings = buildEmbeddings();
 let documentsCollection;
 
+function buildModel() {
+  if (geminiKey) {
+    return new ChatGoogleGenerativeAI({
+      apiKey: geminiKey,
+      model: geminiModel || parsedGeminiModel || "gemini-1.5-flash",
+      maxOutputTokens: 1024,
+      baseUrl: geminiBaseUrl,
+      apiVersion: geminiApiVersion || parsedGeminiApiVersion,
+    });
+  }
+
+  if (openAiKey) {
+    return new ChatOpenAI({
+      apiKey: openAiKey,
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+    });
+  }
+
+  throw new Error("Missing OPEN_KEY or GEMINI_KEY in .env");
+}
+
 function buildOpenAIModel() {
+  if (!openAiKey) {
+    return null;
+  }
+
   return new ChatOpenAI({
     apiKey: openAiKey,
     model: "gpt-4o-mini",
@@ -40,14 +90,34 @@ function buildOpenAIModel() {
 }
 
 async function invokeLLM(prompt) {
-  return await openAiModel.invoke(prompt);
+  try {
+    return await model.invoke(prompt);
+  } catch (error) {
+    console.warn("Primary Gemini model failed, falling back to OpenAI:", error?.message ?? error);
+    if (openAiModel) {
+      return await openAiModel.invoke(prompt);
+    }
+    throw error;
+  }
 }
 
 function buildEmbeddings() {
-  return new OpenAIEmbeddings({
-    openAIApiKey: openAiKey,
-    modelName: "text-embedding-3-small",
-  });
+  if (geminiKey) {
+    return new GoogleGenerativeAIEmbeddings({
+      apiKey: geminiKey,
+      modelName: process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001",
+      baseUrl: geminiBaseUrl,
+    });
+  }
+
+  if (openAiKey) {
+    return new OpenAIEmbeddings({
+      openAIApiKey: openAiKey,
+      modelName: "text-embedding-3-small",
+    });
+  }
+
+  throw new Error("Missing OPEN_KEY or GEMINI_KEY in .env");
 }
 
 async function initMongo() {
@@ -124,7 +194,7 @@ app.post("/upload", async (req, res) => {
       text,
       embedding,
       uploadedAt: new Date().toISOString(),
-      provider: "openai",
+      provider: geminiKey ? "gemini" : "openai",
     };
     const result = await documentsCollection.insertOne(document);
     return res.json({ success: true, document: { id: result.insertedId.toString(), title } });
@@ -142,7 +212,6 @@ app.post("/chat", async (req, res) => {
 
   try {
     const relevantDocs = await getNearestDocuments(message, 3);
-    console.log("Relevant documents:", relevantDocs);
     const context = relevantDocs
       .map((doc, index) => `Document ${index + 1} [${doc.title} | ${doc.source}]:\n${doc.text}`)
       .join("\n\n");

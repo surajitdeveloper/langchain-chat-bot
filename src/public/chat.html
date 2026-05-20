@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chat — LangChain</title>
+  <style>
+    :root{--bg:#f5f7fb;--card:#ffffff;--muted:#6b7280;--primary:#3743ff;--user:#0ea5a4}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;color:#0f172a;background:var(--bg);}
+    header{background:linear-gradient(90deg,#3b82f6 0%,#7c3aed 100%);color:#fff;padding:20px 28px}
+    header h1{margin:0;font-size:20px;letter-spacing:-0.2px}
+    .container{max-width:960px;margin:24px auto;padding:0 16px}
+    .chat-card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 20px rgba(16,24,40,0.06)}
+    .messages{height:420px;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+    .msg{max-width:78%;padding:12px 14px;border-radius:12px;line-height:1.45;white-space:pre-wrap}
+    .msg.assistant{background:#eef2ff;color:#0f172a;align-self:flex-start;border-top-left-radius:4px}
+    .msg.user{background:#e6fffa;color:#064e3b;align-self:flex-end;border-top-right-radius:4px;text-align:right}
+    .meta{font-size:12px;color:var(--muted);margin-top:6px}
+    .input-row{display:flex;gap:12px;margin-top:12px}
+    .input-row input{flex:1;padding:12px;border-radius:10px;border:1px solid #e6edf6}
+    .input-row button{background:var(--primary);color:#fff;border:none;padding:0 18px;border-radius:10px;cursor:pointer}
+    .sources{margin-top:12px;font-size:13px;color:var(--muted);}
+    .source-item{background:#fafafa;border:1px solid #eef2ff;padding:10px;border-radius:8px;margin-bottom:8px}
+    .toolbar{display:flex;gap:8px;align-items:center}
+    .small{font-size:13px;color:var(--muted)}
+    footer{max-width:960px;margin:18px auto;padding:0 16px;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display:flex;justify-content:space-between;align-items:center;max-width:960px;margin:0 auto">
+      <h1>LangChain — Professional Chat</h1>
+      <nav class="toolbar"><a href="/documents.html" style="color:rgba(255,255,255,0.92);text-decoration:none;font-weight:600">Documents</a></nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="chat-card">
+      <div class="messages" id="messages" aria-live="polite"></div>
+
+      <div class="meta">Tip: include context or ask follow-up questions</div>
+
+      <div class="input-row">
+        <input id="messageInput" placeholder="Ask anything..." autocomplete="off" />
+        <button id="sendBtn">Send</button>
+      </div>
+
+      <div class="sources" id="sources" hidden>
+        <strong>Sources:</strong>
+        <div id="sourcesList"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>Running OpenAI-powered assistant · <a href="/" style="color:inherit;text-decoration:underline">Home</a></footer>
+
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const input = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const sourcesEl = document.getElementById('sources');
+    const sourcesList = document.getElementById('sourcesList');
+
+    function appendMessage(text, cls) {
+      const wrap = document.createElement('div');
+      wrap.className = 'msg ' + cls;
+      wrap.textContent = text;
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function showSources(docs){
+      sourcesList.innerHTML = '';
+      if(!docs || !docs.length){ sourcesEl.hidden = true; return }
+      docs.forEach(d=>{
+        const div = document.createElement('div');
+        div.className = 'source-item';
+        div.innerHTML = `<strong>${escapeHtml(d.title)}</strong><div style="font-size:12px;color:#475569">${escapeHtml(d.source)} · score: ${Number(d.score).toFixed(3)}</div>`;
+        sourcesList.appendChild(div);
+      });
+      sourcesEl.hidden = false;
+    }
+
+    function escapeHtml(s){ return (s+'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;') }
+
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); sendMessage(); } });
+
+    async function sendMessage(){
+      const text = input.value.trim();
+      if(!text) return;
+      appendMessage(text,'user');
+      input.value = '';
+      sendBtn.disabled = true;
+
+      appendMessage('Thinking...','assistant');
+      const lastAssistant = messagesEl.querySelector('.msg.assistant:last-child');
+
+      try{
+        const resp = await fetch('/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ message: text }) });
+        const data = await resp.json();
+        if(!resp.ok) throw new Error(data.error || 'Chat failed');
+        // replace 'Thinking...' with actual answer
+        if(lastAssistant) lastAssistant.textContent = data.response || JSON.stringify(data);
+        showSources(data.retrievedDocuments || []);
+      }catch(err){
+        if(lastAssistant) lastAssistant.textContent = err.message || 'Error';
+      }finally{ sendBtn.disabled = false }
+    }
+  </script>
+</body>
+</html>

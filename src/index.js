@@ -91,7 +91,7 @@ async function getNearestDocuments(query, limit = 3) {
 }
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "chat.html"));
 });
 
 app.get("/documents", async (req, res) => {

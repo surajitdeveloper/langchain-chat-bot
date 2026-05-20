@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Documents — LangChain</title>
+  <style>
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:0;background:#f7f8fc;color:#0f172a}
+    .wrap{max-width:920px;margin:32px auto;padding:0 16px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .card{background:#fff;padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.04)}
+    .grid{display:grid;grid-template-columns:1fr 320px;gap:16px}
+    .doc-list{max-height:560px;overflow:auto;padding:8px}
+    .doc-item{padding:10px;border-radius:8px;border:1px solid #eef2ff;background:#fbfeff;margin-bottom:8px}
+    label{display:block;margin-bottom:8px;font-size:13px;color:#334155}
+    input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef8}
+    button{background:#3743ff;color:#fff;border:none;padding:10px 12px;border-radius:8px;cursor:pointer}
+    .small{font-size:13px;color:#64748b}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h2>Documents</h2>
+      <nav><a href="/chat.html">Open Chat</a></nav>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Uploaded Documents</h3>
+        <div id="list" class="doc-list"></div>
+      </div>
+
+      <div class="card">
+        <h3>Upload</h3>
+        <label>Title <input id="title" /></label>
+        <label>Source <input id="source" placeholder="manual"/></label>
+        <label>Text <textarea id="text" rows="8"></textarea></label>
+        <label>File <input id="file" type="file" accept=".txt"/></label>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="upload">Upload</button>
+          <button id="refresh" class="small">Refresh</button>
+        </div>
+        <div id="status" class="small" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const listEl = document.getElementById('list');
+    const titleEl = document.getElementById('title');
+    const sourceEl = document.getElementById('source');
+    const textEl = document.getElementById('text');
+    const fileEl = document.getElementById('file');
+    const statusEl = document.getElementById('status');
+    const uploadBtn = document.getElementById('upload');
+    const refreshBtn = document.getElementById('refresh');
+
+    async function loadDocs(){
+      listEl.innerHTML = 'Loading...';
+      try{
+        const resp = await fetch('/documents');
+        const data = await resp.json();
+        if(!data.documents.length){ listEl.innerHTML = '<div class="small">No documents yet.</div>'; return }
+        listEl.innerHTML = '';
+        data.documents.forEach(d=>{
+          const div = document.createElement('div');
+          div.className = 'doc-item';
+          div.innerHTML = `<strong>${escapeHtml(d.title)}</strong><div class="small">${escapeHtml(d.source)} · ${d.length} chars</div>`;
+          listEl.appendChild(div);
+        });
+      }catch(err){ listEl.innerHTML = 'Failed to load documents.' }
+    }
+
+    function escapeHtml(s){ return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;') }
+
+    async function readFile(f){ if(!f) return ''; return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.toString()); r.onerror=()=>rej(r.error); r.readAsText(f,'UTF-8'); }) }
+
+    fileEl.addEventListener('change', async ()=>{ const f=fileEl.files?.[0]; if(!f) return; statusEl.textContent='Reading file...'; try{ textEl.value = await readFile(f); statusEl.textContent=`Loaded ${f.name}` }catch(e){ statusEl.textContent='Failed to read file.' } });
+
+    uploadBtn.addEventListener('click', async ()=>{
+      const title = titleEl.value.trim(); const source = sourceEl.value.trim()||'manual'; const text = textEl.value.trim();
+      if(!title||!text){ statusEl.textContent='Provide title and text.'; return }
+      uploadBtn.disabled = true; statusEl.textContent='Uploading...';
+      try{
+        const resp = await fetch('/upload',{ method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify({ title, source, text }) });
+        const data = await resp.json(); if(!resp.ok) throw new Error(data.error||'Upload failed');
+        statusEl.textContent = `Uploaded ${data.document.title}`;
+        titleEl.value=''; sourceEl.value=''; textEl.value=''; fileEl.value='';
+        await loadDocs();
+      }catch(e){ statusEl.textContent = e.message||'Upload failed.' }
+      finally{ uploadBtn.disabled=false }
+    });
+
+    refreshBtn.addEventListener('click', loadDocs);
+    loadDocs();
+  </script>
+</body>
+</html>

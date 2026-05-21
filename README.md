@@ -37,7 +37,7 @@ Optional variables:
 
 - `GEMINI_ENDPOINT` — Gemini API endpoint URL, for example `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent`
 - `GEMINI_API_VERSION` — Gemini API version override, for example `v1`
-- `GEMINI_MODEL` — Gemini model name to use, for example `gemini-1.5-flash`
+- `GEMINI_MODEL` — Gemini model name to use, for example `gemini-2.5-flash`
 - `GEMINI_EMBEDDING_MODEL` — Gemini embedding model name to use; default is `gemini-embedding-001`
 - `OPENAI_ENDPOINT` — OpenAI base endpoint URL, for example `https://api.openai.com`
 - `MONGODB_DB` — MongoDB database name (default: `chatbot`)

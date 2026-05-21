@@ -3,23 +3,21 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { MongoClient, ObjectId } from "mongodb";
-import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import * as chrono from "chrono-node";
 
 dotenv.config();
 
-const openAiKey = process.env.OPEN_KEY;
-const openAiEndpoint = process.env.OPENAI_ENDPOINT || "https://api.openai.com";
-const openAiBaseUrl = openAiEndpoint.replace(/\/$/, "") + "/v1";
-const openAiModelName = process.env.OPENAI_MODEL || "gpt-3.5-turbo";
-const openAiEmbeddingModel = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
+const geminiKey = process.env.GOOGLE_API_KEY;
+const geminiModelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const mongoUri = process.env.MONGODB_URI;
 const mongoDbName = process.env.MONGODB_DB || "chatbot";
 const mongoCollection = process.env.MONGODB_COLLECTION || "documents";
 const mongoChatCollection = process.env.MONGODB_CHAT_COLLECTION || "chats";
 const mongoAppointmentsCollection = process.env.MONGODB_APPOINTMENTS_COLLECTION || "appointments";
 
-if (!openAiKey) {
-  throw new Error("Missing OPEN_KEY in .env");
+if (!geminiKey) {
+  throw new Error("Missing GOOGLE_API_KEY in .env");
 }
 
 if (!mongoUri) {
@@ -39,40 +37,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const buildOpenAIModel = () =>
-  new ChatOpenAI({
-    apiKey: openAiKey,
-    model: openAiModelName,
+const buildGeminiModel = () =>
+  new ChatGoogleGenerativeAI({
+    apiKey: geminiKey,
+    model: geminiModelName,
     temperature: 0.7,
-    configuration: {
-      baseURL: openAiBaseUrl,
-    },
   });
 
-const invokeLLM = async (prompt) => await openAiModel.invoke(prompt);
-
-const buildEmbeddings = () =>
-  new OpenAIEmbeddings({
-    openAIApiKey: openAiKey,
-    modelName: openAiEmbeddingModel,
-    configuration: {
-      baseURL: openAiBaseUrl,
-    },
-  });
-
-const cosineSimilarity = (a, b) => {
-  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return 0;
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  if (normA === 0 || normB === 0) return 0;
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-};
+const invokeLLM = async (prompt) => await geminiModel.invoke(prompt);
 
 const parseLlmJsonResponse = (text) => {
   console.log("Parsing LLM response for JSON:", text);
@@ -139,6 +111,16 @@ const evaluateLlmDecision = (rawResponse, message) => {
     };
   }
 
+  // Parse natural language dates in the LLM response details
+  if (decision.details && decision.details.appointmentDateTime) {
+    const rawDate = decision.details.appointmentDateTime;
+    const parsedDate = chrono.parseDate(rawDate);
+    if (parsedDate) {
+      console.log(`Parsed natural language date "${rawDate}" to "${parsedDate.toISOString()}"`);
+      decision.details.appointmentDateTime = parsedDate.toISOString();
+    }
+  }
+
   const appointmentResult = decision.appointment
     ? scheduleLocalAppointment(decision.details || {
         clientName: null,
@@ -163,21 +145,18 @@ const getNearestDocuments = async (query, limit = 3) => {
   if (!documentsCollection) {
     return [];
   }
-  const queryEmbedding = await embeddings.embedQuery(query);
-  const rows = await documentsCollection
-    .find({ embedding: { $exists: true } }, { projection: { title: 1, source: 1, text: 1, embedding: 1, uploadedAt: 1 } })
+  const results = await documentsCollection
+    .find(
+      { $text: { $search: query } },
+      { projection: { title: 1, source: 1, text: 1, uploadedAt: 1, score: { $meta: "textScore" } } }
+    )
+    .sort({ score: { $meta: "textScore" } })
+    .limit(limit)
     .toArray();
-  return rows
-    .map((row) => ({
-      ...row,
-      score: cosineSimilarity(queryEmbedding, row.embedding || []),
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+  return results;
 };
 
-const openAiModel = buildOpenAIModel();
-const embeddings = buildEmbeddings();
+const geminiModel = buildGeminiModel();
 let documentsCollection;
 let chatCollection;
 let appointmentsCollection;
@@ -226,14 +205,12 @@ app.post("/upload", async (req, res) => {
   }
 
   try {
-    const embedding = await embeddings.embedQuery(text);
     const document = {
       title,
       source: source || "manual",
       text,
-      embedding,
       uploadedAt: new Date().toISOString(),
-      provider: "openai",
+      provider: "google",
     };
     const result = await documentsCollection.insertOne(document);
     return res.json({ success: true, document: { id: result.insertedId.toString(), title } });
@@ -267,6 +244,51 @@ app.get("/appointments", async (req, res) => {
   }
 });
 
+app.put("/appointments/:id", async (req, res) => {
+  const { id } = req.params;
+  const { clientName, email, phone, query, appointmentDateTime, status } = req.body;
+  try {
+    const updateFields = {};
+    if (clientName !== undefined) updateFields.clientName = clientName;
+    if (email !== undefined) updateFields.email = email;
+    if (phone !== undefined) updateFields.phone = phone;
+    if (query !== undefined) updateFields.query = query;
+    if (appointmentDateTime !== undefined) updateFields.appointmentDateTime = appointmentDateTime;
+    if (status !== undefined) updateFields.status = status;
+    updateFields.updatedAt = new Date().toISOString();
+
+    const result = await appointmentsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateFields }
+    );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: "Appointment not found." });
+    }
+    return res.json({ success: true, updated: updateFields });
+  } catch (error) {
+    console.error("Update appointment error:", error);
+    return res.status(500).json({ error: "Failed to update appointment." });
+  }
+});
+
+app.delete("/appointments/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await appointmentsCollection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Appointment not found." });
+    }
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("Delete appointment error:", error);
+    return res.status(500).json({ error: "Failed to delete appointment." });
+  }
+});
+
+app.get("/appointments-ui", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "appointments.html"));
+});
+
 app.post("/chat", async (req, res) => {
   const { message, history, appointmentDetails } = req.body;
   if (!message) {
@@ -295,6 +317,8 @@ Current collected details so far:
     const systemInstruction = `You are a helpful assistant that receives a user question and decides two things:
 1. Whether the question is technical.
 2. Whether it should trigger a local appointment action.
+
+Today's Date: ${new Date().toDateString()}
 
 To schedule an appointment, you MUST gather all the following important details:
 - Client Name (clientName)
@@ -345,8 +369,8 @@ console.log("Constructed prompt for LLM:", prompt);
         score: doc.score,
       })),
       createdAt: new Date().toISOString(),
-      provider: "openai",
-      model: openAiModelName,
+      provider: "google",
+      model: geminiModelName,
       technical: decision.technical,
       appointment: decision.appointment,
       appointmentResult: decision.appointmentResult,

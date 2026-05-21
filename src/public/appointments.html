@@ -191,6 +191,168 @@
       border-top: 1px solid #eff2ff;
     }
 
+    /* Inline edit styles */
+    .appointments-table td.editing {
+      padding: 10px 12px;
+    }
+
+    .appointments-table td.editing input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.92rem;
+      outline: none;
+      background: #f8faff;
+      transition: border-color 0.2s;
+    }
+
+    .appointments-table td.editing input:focus {
+      border-color: #6366f1;
+      background: #fff;
+    }
+
+    /* Action buttons */
+    .action-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .btn-icon {
+      border: none;
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 700;
+      transition: transform 0.15s ease, background 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .btn-icon:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-edit {
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+
+    .btn-edit:hover {
+      background: #c7d2fe;
+    }
+
+    .btn-save {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .btn-save:hover {
+      background: #bbf7d0;
+    }
+
+    .btn-cancel {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .btn-cancel:hover {
+      background: #e2e8f0;
+    }
+
+    .btn-delete {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .btn-delete:hover {
+      background: #fecaca;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 14px 24px;
+      border-radius: 14px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.92rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast-success { background: #15803d; }
+    .toast-error { background: #dc2626; }
+
+    /* Delete confirm overlay */
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+    }
+
+    .confirm-box {
+      background: #fff;
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    .confirm-box h4 {
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+    }
+
+    .confirm-box p {
+      margin: 0 0 24px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .confirm-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .confirm-actions button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .confirm-yes {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .confirm-no {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
     @media (max-width: 820px) {
       .appointments-table {
         min-width: auto;
@@ -243,7 +405,7 @@
     <section class="hero">
       <div>
         <h2>Appointment management</h2>
-        <p>All appointments created by the LLM are stored here. Use the refresh button to load the latest appointments from the database.</p>
+        <p>All appointments created by the LLM are stored here. Use the refresh button to load the latest appointments from the database. <strong>Tip:</strong> You can use natural language like "tomorrow at 5pm" when editing dates.</p>
       </div>
     </section>
 
@@ -261,6 +423,7 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/chrono-node@2.3.8/dist/bundle.min.js"></script>
   <script>
     const listArea = document.getElementById('listArea');
     const refreshBtn = document.getElementById('refreshBtn');
@@ -298,6 +461,7 @@
           <th>Appointment</th>
           <th>Status</th>
           <th>Created</th>
+          <th>Actions</th>
         </tr>
       `;
       table.appendChild(head);
@@ -305,15 +469,22 @@
       const body = document.createElement('tbody');
       appointments.forEach((appointment) => {
         const row = document.createElement('tr');
+        row.dataset.id = appointment.id;
         row.innerHTML = `
           <td data-label="#">${appointment.number}</td>
-          <td data-label="Client">${escapeHtml(appointment.clientName)}</td>
-          <td data-label="Email">${escapeHtml(appointment.email || '—')}</td>
-          <td data-label="Phone">${escapeHtml(appointment.phone || '—')}</td>
-          <td data-label="Topic/Notes">${escapeHtml(appointment.query)}</td>
-          <td data-label="Appointment">${escapeHtml(new Date(appointment.appointmentDateTime).toLocaleString())}</td>
-          <td data-label="Status"><span class="status-pill">${escapeHtml(appointment.status)}</span></td>
+          <td data-label="Client" data-field="clientName">${escapeHtml(appointment.clientName)}</td>
+          <td data-label="Email" data-field="email">${escapeHtml(appointment.email || '—')}</td>
+          <td data-label="Phone" data-field="phone">${escapeHtml(appointment.phone || '—')}</td>
+          <td data-label="Topic/Notes" data-field="query">${escapeHtml(appointment.query)}</td>
+          <td data-label="Appointment" data-field="appointmentDateTime">${escapeHtml(new Date(appointment.appointmentDateTime).toLocaleString())}</td>
+          <td data-label="Status" data-field="status"><span class="status-pill">${escapeHtml(appointment.status)}</span></td>
           <td data-label="Created">${escapeHtml(new Date(appointment.createdAt).toLocaleString())}</td>
+          <td data-label="Actions">
+            <div class="action-btns">
+              <button class="btn-icon btn-edit" onclick="startEdit(this)">Edit</button>
+              <button class="btn-icon btn-delete" onclick="confirmDelete('${appointment.id}', '${escapeHtml(appointment.clientName)}')">Delete</button>
+            </div>
+          </td>
         `;
         body.appendChild(row);
       });
@@ -321,6 +492,136 @@
 
       listArea.innerHTML = '';
       listArea.appendChild(table);
+    };
+
+    /* ---- Inline Edit ---- */
+    const startEdit = (btn) => {
+      const row = btn.closest('tr');
+      const editableCells = row.querySelectorAll('td[data-field]');
+      const original = {};
+
+      editableCells.forEach(cell => {
+        const field = cell.dataset.field;
+        let value = cell.textContent.trim();
+        if (value === '—') value = '';
+        original[field] = value;
+
+        let inputType = 'text';
+        if (field === 'email') inputType = 'email';
+        if (field === 'phone') inputType = 'tel';
+        
+        // Use text input for dates to allow natural language parsing via Chrono
+        if (field === 'appointmentDateTime') inputType = 'text';
+
+        let inputValue = value;
+        cell.classList.add('editing');
+        cell.innerHTML = `<input type="${inputType}" value="${escapeHtml(inputValue)}" placeholder="${field === 'appointmentDateTime' ? 'e.g. tomorrow 2pm' : ''}" />`;
+      });
+
+      row._original = original;
+
+      const actionsCell = row.querySelector('td[data-label="Actions"]');
+      actionsCell.innerHTML = `
+        <div class="action-btns">
+          <button class="btn-icon btn-save" onclick="saveEdit(this)">Save</button>
+          <button class="btn-icon btn-cancel" onclick="cancelEdit(this)">Cancel</button>
+        </div>
+      `;
+    };
+
+    const cancelEdit = (btn) => {
+      fetchAppointments();
+    };
+
+    const saveEdit = async (btn) => {
+      const row = btn.closest('tr');
+      const id = row.dataset.id;
+      const editableCells = row.querySelectorAll('td[data-field]');
+      const updates = {};
+
+      editableCells.forEach(cell => {
+        const field = cell.dataset.field;
+        const input = cell.querySelector('input');
+        let value = input ? input.value.trim() : '';
+
+        if (field === 'appointmentDateTime' && value) {
+          // Use Chrono to parse natural language dates
+          const parsedDate = chrono.parseDate(value);
+          if (parsedDate) {
+            value = parsedDate.toISOString();
+          } else {
+            // Fallback to native Date if Chrono fails
+            const nativeDate = new Date(value);
+            if (isNaN(nativeDate.getTime())) {
+              throw new Error(`Could not understand the date: "${value}". Try something like "tomorrow 3pm" or "Monday".`);
+            }
+            value = nativeDate.toISOString();
+          }
+        }
+
+        updates[field] = value;
+      });
+
+      try {
+        const resp = await fetch(`/appointments/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Update failed');
+        showToast('Appointment updated successfully!', 'success');
+        fetchAppointments();
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    };
+
+    /* ---- Delete with confirmation ---- */
+    const confirmDelete = (id, name) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      overlay.innerHTML = `
+        <div class="confirm-box">
+          <h4>Delete appointment</h4>
+          <p>Are you sure you want to delete the appointment for <strong>${escapeHtml(name)}</strong>? This action cannot be undone.</p>
+          <div class="confirm-actions">
+            <button class="confirm-yes" id="confirmYes">Delete</button>
+            <button class="confirm-no" id="confirmNo">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      overlay.querySelector('#confirmNo').addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+      overlay.querySelector('#confirmYes').addEventListener('click', async () => {
+        overlay.remove();
+        try {
+          const resp = await fetch(`/appointments/${id}`, { method: 'DELETE' });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || 'Delete failed');
+          showToast('Appointment deleted.', 'success');
+          fetchAppointments();
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      });
+    };
+
+    /* ---- Toast ---- */
+    const showToast = (msg, type = 'success') => {
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add('show'));
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
     };
 
     refreshBtn.addEventListener('click', fetchAppointments);

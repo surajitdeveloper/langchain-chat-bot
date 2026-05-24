@@ -22,7 +22,6 @@ const mongoUsersCollection = process.env.MONGODB_USERS_COLLECTION || "users";
 
 const langchainmodel = process.env.OPENROUTER_MODEL || "gemini-2.5-flash";
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
@@ -31,16 +30,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
+const openRouterModel = new ChatOpenRouter(langchainmodel, {
+  temperature: 0.8,
+});
+const invokeLLM = async (prompt) => await openRouterModel.invoke(prompt);
+
 const buildGeminiModel = () =>
   new ChatGoogleGenerativeAI({
     apiKey: geminiKey,
     model: geminiModelName,
     temperature: 0.7,
   });
-const invokeLLM = async (prompt) => await geminiModel.invoke(prompt);
+// const invokeLLM = async (prompt) => await geminiModel.invoke(prompt);
 
 const parseLlmJsonResponse = (text) => {
-  console.log("Parsing LLM response for JSON:", text);
+  // console.log("Parsing LLM response for JSON:", text);
   if (!text || typeof text !== "string") {
     throw new Error("LLM response is empty or invalid.");
   }
@@ -61,7 +65,10 @@ const parseLlmJsonResponse = (text) => {
   }
 };
 
-const hashPassword = (password, salt = crypto.randomBytes(16).toString("hex")) => {
+const hashPassword = (
+  password,
+  salt = crypto.randomBytes(16).toString("hex"),
+) => {
   const derivedKey = crypto.scryptSync(password, salt, 64).toString("hex");
   return `${salt}:${derivedKey}`;
 };
@@ -71,7 +78,10 @@ const verifyPassword = (password, storedHash) => {
   const [salt, derived] = storedHash.split(":");
   if (!salt || !derived) return false;
   const computed = crypto.scryptSync(password, salt, 64).toString("hex");
-  return crypto.timingSafeEqual(Buffer.from(computed, "hex"), Buffer.from(derived, "hex"));
+  return crypto.timingSafeEqual(
+    Buffer.from(computed, "hex"),
+    Buffer.from(derived, "hex"),
+  );
 };
 
 const scheduleLocalAppointment = (details) => {
@@ -99,13 +109,13 @@ const scheduleLocalAppointment = (details) => {
     status: "scheduled",
     confirmation: "Appointment has been set.",
   };
-  console.log("Local appointment triggered:", appointment);
+  // console.log("Local appointment triggered:", appointment);
   return appointment;
 };
 
 const evaluateLlmDecision = (rawResponse, message) => {
-  console.log("Raw LLM response:", rawResponse);
-  console.log("Original message:", message);
+  // console.log("Raw LLM response:", rawResponse);
+  // console.log("Original message:", message);
   let decision;
   try {
     decision = parseLlmJsonResponse(rawResponse);
@@ -132,7 +142,9 @@ const evaluateLlmDecision = (rawResponse, message) => {
       const rawDate = decision.details.appointmentDateTime;
       const parsedDate = chrono.parseDate(rawDate);
       if (parsedDate) {
-        console.log(`Parsed natural language date "${rawDate}" to "${parsedDate.toISOString()}"`);
+        console.log(
+          `Parsed natural language date "${rawDate}" to "${parsedDate.toISOString()}"`,
+        );
         decision.details.appointmentDateTime = parsedDate.toISOString();
       }
     }
@@ -201,7 +213,7 @@ const startAgenticAI = async () => {
   try {
     await usersCollection.updateOne(
       { _id: new ObjectId("67b32ee0b140e86775c6e2cf") },
-      { $set: { name: "Surajit" } }
+      { $set: { name: "Surajit" } },
     );
   } catch (e) {
     console.warn("Migration: Could not update specific user name");
@@ -209,11 +221,19 @@ const startAgenticAI = async () => {
 
   // 2. Map all unassigned data to your user ID
   const targetUserId = "67b32ee0b140e86775c6e2cf";
-  const migrationFilter = { $or: [{ userId: { $exists: false } }, { userId: null }, { userId: "1" }] };
+  const migrationFilter = {
+    $or: [{ userId: { $exists: false } }, { userId: null }, { userId: "1" }],
+  };
 
-  await documentsCollection.updateMany(migrationFilter, { $set: { userId: targetUserId } });
-  await appointmentsCollection.updateMany(migrationFilter, { $set: { userId: targetUserId } });
-  await chatCollection.updateMany(migrationFilter, { $set: { userId: targetUserId } });
+  await documentsCollection.updateMany(migrationFilter, {
+    $set: { userId: targetUserId },
+  });
+  await appointmentsCollection.updateMany(migrationFilter, {
+    $set: { userId: targetUserId },
+  });
+  await chatCollection.updateMany(migrationFilter, {
+    $set: { userId: targetUserId },
+  });
 
   await documentsCollection.createIndex({
     title: "text",
@@ -237,18 +257,20 @@ const startAgenticAI = async () => {
   });
 };
 
-
-
 app.post("/register", async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
-    return res.status(400).json({ error: "name, email, and password are required" });
+    return res
+      .status(400)
+      .json({ error: "name, email, and password are required" });
   }
 
   try {
     const existing = await usersCollection.findOne({ email });
     if (existing) {
-      return res.status(409).json({ error: "A user with that email already exists." });
+      return res
+        .status(409)
+        .json({ error: "A user with that email already exists." });
     }
 
     const passwordHash = hashPassword(password);
@@ -281,7 +303,12 @@ app.post("/login", async (req, res) => {
   if (email === "admin@agentic.ai" && password === "Admin@123") {
     return res.json({
       success: true,
-      user: { id: "admin", name: "System Admin", email: "admin@agentic.ai", role: "admin" }
+      user: {
+        id: "admin",
+        name: "System Admin",
+        email: "admin@agentic.ai",
+        role: "admin",
+      },
     });
   }
 
@@ -312,7 +339,10 @@ app.get("/documents", async (req, res) => {
       return res.status(401).json({ error: "Missing userId" });
     }
     const docs = await documentsCollection
-      .find({ userId }, { projection: { title: 1, source: 1, text: 1, uploadedAt: 1 } })
+      .find(
+        { userId },
+        { projection: { title: 1, source: 1, text: 1, uploadedAt: 1 } },
+      )
       .sort({ uploadedAt: -1 })
       .toArray();
     return res.json({
@@ -333,7 +363,9 @@ app.get("/documents", async (req, res) => {
 app.post("/upload", async (req, res) => {
   const { title, source, text, userId } = req.body;
   if (!title || !text || !userId) {
-    return res.status(400).json({ error: "title, text, and userId are required" });
+    return res
+      .status(400)
+      .json({ error: "title, text, and userId are required" });
   }
 
   try {
@@ -508,40 +540,41 @@ Respond only in valid JSON with these keys:
     const formattedHistory =
       Array.isArray(history) && history.length > 0
         ? history
-          .map(
-            (h) =>
-              `${h.role === "user" ? "User" : "Assistant"}: ${h.content}`,
-          )
-          .join("\n")
+            .map(
+              (h) =>
+                `${h.role === "user" ? "User" : "Assistant"}: ${h.content}`,
+            )
+            .join("\n")
         : "";
 
     const prompt = relevantDocs.length
       ? `${systemInstruction}\n\nContext:\n${context}\n\n${detailsState}\n\n${formattedHistory ? `Conversation History:\n${formattedHistory}\n\n` : ""}Question: ${message}`
       : `${systemInstruction}\n\n${detailsState}\n\n${formattedHistory ? `Conversation History:\n${formattedHistory}\n\n` : ""}Question: ${message}`;
     console.log("Constructed prompt for LLM:", prompt);
-    const response = await invokeLLM(prompt);
+    const resp = await invokeLLM(prompt);
+    const response = resp?.content;
     console.log("LLM raw response:", response);
     const rawResponse =
       response?.text ??
       (typeof response?.content === "string" ? response.content : response);
 
     const decision = evaluateLlmDecision(rawResponse, message);
-    try {
-      const openRouterModel = new ChatOpenRouter(
-        langchainmodel,
-        { temperature: 0.8 }
-      );
-      console.log("prompt -->", prompt)
-      const resp = await openRouterModel.invoke(prompt);
-      console.log("----------------------------------------------------");
-      console.log("Raw OpenRouter response:", resp?.content);
-      const parseItm = parseLlmJsonResponse(resp?.content);
-      console.log("----------------------------------------------------");
-      console.log("Parsed OpenRouter JSON response:", parseItm);
-    }
-    catch (e) {
-      console.error("Error invoking OpenRouter model:", e);
-    }
+    // try {
+    //   const openRouterModel = new ChatOpenRouter(
+    //     langchainmodel,
+    //     { temperature: 0.8 }
+    //   );
+    //   console.log("prompt -->", prompt)
+    //   const resp = await openRouterModel.invoke(prompt);
+    //   console.log("----------------------------------------------------");
+    //   console.log("Raw OpenRouter response:", resp?.content);
+    //   const parseItm = parseLlmJsonResponse(resp?.content);
+    //   console.log("----------------------------------------------------");
+    //   console.log("Parsed OpenRouter JSON response:", parseItm);
+    // }
+    // catch (e) {
+    //   console.error("Error invoking OpenRouter model:", e);
+    // }
     const chatDoc = {
       message,
       response: decision.response,
@@ -642,9 +675,17 @@ app.get("/admin/users", async (req, res) => {
   if (adminId !== "admin") return res.status(403).json({ error: "Forbidden" });
 
   try {
-    const users = await usersCollection.find({}).sort({ createdAt: -1 }).toArray();
+    const users = await usersCollection
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
     return res.json({
-      users: users.map(u => ({ id: u._id.toString(), name: u.name, email: u.email, createdAt: u.createdAt }))
+      users: users.map((u) => ({
+        id: u._id.toString(),
+        name: u.name,
+        email: u.email,
+        createdAt: u.createdAt,
+      })),
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch users" });
@@ -660,7 +701,10 @@ app.put("/admin/users/:id", async (req, res) => {
     const updateData = { name, email };
     if (password) updateData.passwordHash = hashPassword(password);
 
-    await usersCollection.updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+    await usersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData },
+    );
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Update failed" });

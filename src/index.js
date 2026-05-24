@@ -35,12 +35,12 @@ const openRouterModel = new ChatOpenRouter(langchainmodel, {
 });
 const invokeLLM = async (prompt) => await openRouterModel.invoke(prompt);
 
-const buildGeminiModel = () =>
-  new ChatGoogleGenerativeAI({
-    apiKey: geminiKey,
-    model: geminiModelName,
-    temperature: 0.7,
-  });
+// const buildGeminiModel = () =>
+//   new ChatGoogleGenerativeAI({
+//     apiKey: geminiKey,
+//     model: geminiModelName,
+//     temperature: 0.7,
+//   });
 // const invokeLLM = async (prompt) => await geminiModel.invoke(prompt);
 
 const parseLlmJsonResponse = (text) => {
@@ -187,7 +187,7 @@ const getNearestDocuments = async (query, userId = 1, limit = 3) => {
   return results;
 };
 
-const geminiModel = buildGeminiModel();
+// const geminiModel = buildGeminiModel();
 let documentsCollection;
 let chatCollection;
 let appointmentsCollection;

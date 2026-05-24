@@ -33,9 +33,12 @@ const buildGeminiModel = () =>
     model: geminiModelName,
     temperature: 0.7,
   });
-
+try{
 const invokeLLM = async (prompt) => await geminiModel.invoke(prompt);
-
+}catch(e){
+  console.error("Error initializing Gemini model:", e);
+  process.exit(1);
+} 
 const parseLlmJsonResponse = (text) => {
   console.log("Parsing LLM response for JSON:", text);
   if (!text || typeof text !== "string") {

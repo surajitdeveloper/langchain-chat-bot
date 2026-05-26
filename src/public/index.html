@@ -3,138 +3,216 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login / Register — LangChain Chat</title>
+  <title>LangChain Workspace</title>
   <style>
-    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;background:#eef2ff;color:#0f172a;display:flex;align-items:center;justify-content:center;height:100vh}
-    .card{background:#fff;border-radius:20px;box-shadow:0 24px 80px rgba(15,23,42,.12);width:min(520px,92vw);padding:28px}
-    h1{margin:0 0 18px;font-size:26px;color:#111827}
-    p{margin:0 0 20px;color:#475569;line-height:1.6}
-    .tab-buttons{display:flex;gap:12px;margin-bottom:20px}
-    .tab-buttons button{flex:1;padding:12px 16px;border-radius:12px;border:1px solid #dbe2ef;background:#f8fafc;color:#111827;cursor:pointer;font-weight:700}
-    .tab-buttons button.active{background:#2563eb;color:#fff;border-color:#2563eb}
-    label{display:block;font-size:14px;color:#334155;margin-bottom:6px}
-    input{width:100%;padding:12px 14px;margin-bottom:16px;border:1px solid #dbe2ef;border-radius:12px;font-size:15px}
-    button[type="submit"]{width:100%;padding:12px 16px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}
-    .note{font-size:13px;color:#64748b;margin-top:16px;background:#f8fafc;padding:14px;border-radius:12px;border:1px solid #e2e8f0}
-    .error{color:#b91c1c;font-size:14px;margin-bottom:12px}
-    .success{color:#047857;font-size:14px;margin-bottom:12px}
+    :root {
+      --bg: #f3f6fb;
+      --surface: rgba(255, 255, 255, 0.98);
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #4338ca;
+      --accent: #6366f1;
+      --border: rgba(99, 102, 241, 0.12);
+      --shadow: 0 24px 80px rgba(15, 23, 42, 0.1);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.16), transparent 24%),
+        linear-gradient(180deg, #eef2ff 0%, #f8fafc 55%, #ffffff 100%);
+    }
+
+    .page-shell {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 30px 20px 48px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      gap: 20px;
+      align-items: stretch;
+      margin-bottom: 24px;
+    }
+
+    .hero-card, .feature-card {
+      background: var(--surface);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .hero-card h1 {
+      margin: 0;
+      font-size: 2.3rem;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-card p {
+      margin: 14px 0 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 1.03rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-weight: 800;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+    }
+
+    .secondary-btn {
+      background: rgba(67, 56, 202, 0.08);
+      color: #312e81;
+      border: 1px solid rgba(67, 56, 202, 0.14);
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .detail-item {
+      padding: 16px;
+      border-radius: 18px;
+      background: #f8fafc;
+      border: 1px solid rgba(99, 102, 241, 0.08);
+    }
+
+    .detail-item strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+    }
+
+    .detail-item span {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .feature-card h3 {
+      margin: 0 0 10px;
+      font-size: 1.1rem;
+    }
+
+    .feature-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .footer-note {
+      margin-top: 26px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="tab-buttons">
-      <button id="loginTab" class="active" type="button">Login</button>
-      <button id="registerTab" type="button">Register</button>
-    </div>
-    <h1 id="formTitle">Login to your account</h1>
-    <p id="formSubtitle">Login with your email and password to access your documents and chat.</p>
-    <div id="message" class="error" hidden></div>
+  <div class="page-shell">
+    <section class="hero">
+      <div class="hero-card">
+        <h1>Intelligent chatbot workspace</h1>
+        <p>Manage document-backed conversations, capture appointment details, and keep every interaction organized in a modern, professional interface designed for real business workflows.</p>
 
-    <form id="loginForm">
-      <label for="loginEmail">Email</label>
-      <input id="loginEmail" name="email" type="email" autocomplete="email" required />
-      <label for="loginPassword">Password</label>
-      <input id="loginPassword" name="password" type="password" autocomplete="current-password" required />
-      <button type="submit">Login</button>
-    </form>
+        <div class="hero-actions">
+          <a class="primary-btn" href="/login.html">Login or register</a>
+          <a class="secondary-btn" href="/chat.html">Open AI chat</a>
+        </div>
 
-    <form id="registerForm" hidden>
-      <label for="registerName">Name</label>
-      <input id="registerName" name="name" type="text" autocomplete="name" required />
-      <label for="registerEmail">Email</label>
-      <input id="registerEmail" name="email" type="email" autocomplete="email" required />
-      <label for="registerPassword">Password</label>
-      <input id="registerPassword" name="password" type="password" autocomplete="new-password" required />
-      <button type="submit">Register</button>
-    </form>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <strong>Realtime assistant</strong>
+            <span>Socket.IO powers the chat experience for faster message handling and responsive updates.</span>
+          </div>
+          <div class="detail-item">
+            <strong>Document grounding</strong>
+            <span>Upload your knowledge base to help the assistant answer with retrieval-backed context.</span>
+          </div>
+          <div class="detail-item">
+            <strong>Appointment workflow</strong>
+            <span>Collect supporting details and store confirmed appointments directly from the chat experience.</span>
+          </div>
+          <div class="detail-item">
+            <strong>Professional UX</strong>
+            <span>Clean layouts, strong typography, and consistent navigation across every page.</span>
+          </div>
+        </div>
+      </div>
 
-    <div class="note">
-      <strong>Admin Login:</strong><br>
-      Email: admin@agentic.ai | Password: Admin@123
-      <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
-      If you are using the sample user, register with the email below or login after registration:
-      <ul style="margin:8px 0 0 16px;padding:0;list-style:disc">
-        <li>Name: surajit</li>
-        <li>Email: surajit@yest.com</li>
-        <li>Password: Surajit@1992</li>
-      </ul>
+      <div class="hero-card">
+        <h2 style="margin-top: 0;">What you can do</h2>
+        <p style="margin-bottom: 20px;">The workspace combines chat, document management, and appointment tracking in one place so your team can move quickly without switching tools.</p>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <h3>Ask questions</h3>
+            <p>Use the chat assistant to search documents and get concise, context-aware answers.</p>
+          </div>
+          <div class="feature-card">
+            <h3>Upload content</h3>
+            <p>Add text documents or .txt files and let the assistant use them during conversations.</p>
+          </div>
+          <div class="feature-card">
+            <h3>Manage appointments</h3>
+            <p>Review, edit, and delete scheduled appointments from a polished management view.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      Use the navigation at the top of each page to move between chat, documents, and appointments. Your login session is stored locally in the browser for a seamless experience.
     </div>
   </div>
-
-  <script>
-    const loginTab = document.getElementById('loginTab');
-    const registerTab = document.getElementById('registerTab');
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const formTitle = document.getElementById('formTitle');
-    const formSubtitle = document.getElementById('formSubtitle');
-    const messageEl = document.getElementById('message');
-
-    const showTab = (tab) => {
-      const isLogin = tab === 'login';
-      loginForm.hidden = !isLogin;
-      registerForm.hidden = isLogin;
-      loginTab.classList.toggle('active', isLogin);
-      registerTab.classList.toggle('active', !isLogin);
-      formTitle.textContent = isLogin ? 'Login to your account' : 'Create a new account';
-      formSubtitle.textContent = isLogin
-        ? 'Login with your email and password to access your documents and chat.'
-        : 'Register a new account to keep your documents and chat separate.';
-      messageEl.hidden = true;
-    };
-
-    loginTab.addEventListener('click', () => showTab('login'));
-    registerTab.addEventListener('click', () => showTab('register'));
-
-    const saveSessionUser = (user) => {
-      sessionStorage.setItem('currentUser', JSON.stringify(user));
-      window.location.href = '/chat.html';
-    };
-
-    loginForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      messageEl.hidden = true;
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-
-      try {
-        const resp = await fetch('/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || 'Login failed');
-        saveSessionUser(data.user);
-      } catch (error) {
-        messageEl.textContent = error.message;
-        messageEl.className = 'error';
-        messageEl.hidden = false;
-      }
-    });
-
-    registerForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      messageEl.hidden = true;
-      const name = document.getElementById('registerName').value.trim();
-      const email = document.getElementById('registerEmail').value.trim();
-      const password = document.getElementById('registerPassword').value;
-
-      try {
-        const resp = await fetch('/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password }),
-        });
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || 'Registration failed');
-        saveSessionUser(data.user);
-      } catch (error) {
-        messageEl.textContent = error.message;
-        messageEl.className = 'error';
-        messageEl.hidden = false;
-      }
-    });
-  </script>
 </body>
 </html>

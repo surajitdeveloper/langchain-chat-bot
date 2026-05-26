@@ -58,6 +58,14 @@
 
   <script src="/script.js"></script>
   <script>
+    const isAdminUser = currentUser?.email === 'admin@agentic.ai' || currentUser?.role === 'admin';
+    if (isAdminUser) {
+      const adminLink = document.createElement('a');
+      adminLink.href = '/admin.html';
+      adminLink.textContent = 'Admin';
+      document.querySelector('.toolbar').appendChild(adminLink);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const listArea = document.getElementById('listArea');
       const refreshBtn = document.getElementById('refreshBtn');

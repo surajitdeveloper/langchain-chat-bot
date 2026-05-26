@@ -14,4 +14,4 @@ export const mongoUsersCollection = process.env.MONGODB_USERS_COLLECTION || "use
 export const mongoTicketsCollection = process.env.MONGODB_TICKETS_COLLECTION || "tickets";
 
 export const langchainmodel = process.env.OPENROUTER_MODEL || "gemini-2.5-flash";
-export const port = process.env.PORT || 3000;
+export const port = process.env.PORT || 3001;

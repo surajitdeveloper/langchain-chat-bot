@@ -4,10 +4,20 @@ import { ObjectId } from "mongodb";
 import { ChatOpenRouter } from "@langchain/openrouter";
 import { geminiKey, geminiModelName, langchainmodel } from "./config.js";
 
+// Import database collections needed for processChatRequest
+import {
+  documentsCollection,
+  chatCollection,
+  appointmentsCollection,
+  usersCollection,
+  ticketsCollection,
+} from "./db.js";
+
 // Placeholder for documentsCollection, will be imported from db.js later
-let documentsCollection;
+let localDocumentsCollection; // Renamed to avoid conflict if documentsCollection is imported globally
+
 export const setDocumentsCollection = (collection) => {
-  documentsCollection = collection;
+  localDocumentsCollection = collection;
 };
 
 const openRouterModel = new ChatOpenRouter(langchainmodel, {
@@ -115,7 +125,7 @@ export const evaluateLlmDecision = (rawResponse, message) => {
       const parsedDate = chrono.parseDate(rawDate);
       if (parsedDate) {
         console.log(
-          `Parsed natural language date "${rawDate}" to "${parsedDate.toISOString()}"`,
+          `Parsed natural language date \"${rawDate}\" to \"${parsedDate.toISOString()}\" `,
         );
         decision.details.appointmentDateTime = parsedDate.toISOString();
       }
@@ -162,4 +172,152 @@ export const getNearestDocuments = async (query, userId = 1, limit = 3) => {
     .limit(limit)
     .toArray();
   return results;
+};
+
+export const normalizeAppointmentDetails = (details = {}) => ({
+  clientName: details.clientName || null,
+  email: details.email || null,
+  phone: details.phone || null,
+  appointmentDateTime: details.appointmentDateTime || null,
+  query: details.query || null,
+});
+
+export const processChatRequest = async ({ userId, message, history, appointmentDetails, userName, userEmail }) => {
+  if (!userId) {
+    throw new Error("Missing userId");
+  }
+
+  const currentAppointmentDetails = normalizeAppointmentDetails(appointmentDetails);
+  const relevantDocs = await getNearestDocuments(message, userId, 3);
+  const context = relevantDocs
+    .map(
+      (doc, index) =>
+        `Document ${index + 1}: ${doc.title}\nSource: ${doc.source}\nText: ${doc.text}`,
+    )
+    .join("\n\n");
+
+  const detailsState = `
+Current collected details so far:
+- Client Name: ${currentAppointmentDetails.clientName || "not provided"}
+- Email Address: ${currentAppointmentDetails.email || "not provided"}
+- Phone/Contact: ${currentAppointmentDetails.phone || "not provided"}
+- Preferred Date & Time: ${currentAppointmentDetails.appointmentDateTime || "not provided"}
+- Topic / Reason: ${currentAppointmentDetails.query || "not provided"}
+`;
+
+  const systemInstruction = `You are a helpful assistant that receives a user question and decides whether it should trigger a local action:
+1. "appointment": For scheduling a meeting.
+2. "query_ticket": For when a user reports a problem or asks a complex query that needs support tracking.
+
+Today\'s Date: ${new Date().toDateString()}
+
+TO SCHEDULE AN APPOINTMENT (appointment: true):
+You MUST gather: Client Name (clientName), Email (email), Phone (phone), and Date/Time (appointmentDateTime).
+
+TO CREATE A SUPPORT TICKET (query_ticket: true):
+If the user is reporting a bug, technical issue, or problem that requires investigation, set query_ticket to true.
+You MUST gather:
+- subject: a short summary of the issue
+- description: a detailed explanation of the problem
+
+Rules:
+- Review "Current collected details so far".
+- If important details for either action are missing, set the action to false and ask for missing info.
+- Once ALL details for a ticket are present, set query_ticket to true.
+
+Respond ONLY in valid JSON:
+- appointment: true/false
+- query_ticket: true/false
+- reason: short explanation
+- response: natural-language response
+- details: object with keys: clientName, email, phone, appointmentDateTime, query, subject, description.
+`;
+
+  const formattedHistory =
+    Array.isArray(history) && history.length > 0
+      ? history
+          .map(
+            (h) =>
+              `${h.role === "user" ? "User" : "Assistant"}: ${h.content}`,
+          )
+          .join("\n")
+      : "";
+
+  const prompt = relevantDocs.length
+    ? `${systemInstruction}\n\nContext:\n${context}\n\n${detailsState}\n\n${formattedHistory ? `Conversation History:\n${formattedHistory}\n\n` : ""}Question: ${message}`
+    : `${systemInstruction}\n\n${detailsState}\n\n${formattedHistory ? `Conversation History:\n${formattedHistory}\n\n` : ""}Question: ${message}`;
+
+  const resp = await invokeLLM(prompt);
+  const rawResponse = resp?.content;
+
+  const decision = evaluateLlmDecision(rawResponse, message);
+
+  const chatDoc = {
+    message,
+    response: decision.response,
+    retrievedDocuments: relevantDocs.map((doc) => ({
+      title: doc.title,
+      source: doc.source,
+      score: doc.score,
+    })),
+    createdAt: new Date().toISOString(),
+    provider: "google",
+    model: geminiModelName,
+    appointment: decision.appointment,
+    query_ticket: decision.query_ticket,
+    llmReason: decision.reason,
+    userId: userId,
+  };
+
+  await chatCollection.insertOne(chatDoc);
+
+  let savedAppointment = null;
+  if (decision.appointment && appointmentsCollection) {
+    const appointmentDoc = {
+      clientName: decision.details?.clientName || "Unknown Client",
+      email: decision.details?.email || "",
+      phone: decision.details?.phone || "",
+      query: decision.details?.query || message,
+      appointmentDateTime:
+        decision.details?.appointmentDateTime || new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      status: "scheduled",
+      confirmation: "Appointment has been set.",
+      llmReason: decision.reason,
+      userId: userId,
+    };
+    const appointmentResult = await appointmentsCollection.insertOne(appointmentDoc);
+    savedAppointment = { ...appointmentDoc, id: appointmentResult.insertedId.toString() };
+  }
+
+  let savedTicket = null;
+  if (decision.query_ticket && ticketsCollection) {
+    const ticketNo = `TIC-${Date.now()}`;
+    const ticketDoc = {
+      ticketNo,
+      userId: userId,
+      userName: userName || "User",
+      userEmail: userEmail || "",
+      subject: decision.details?.subject || "Support Query",
+      description: decision.details?.description || message,
+      status: "open",
+      createdAt: new Date().toISOString(),
+      llmReason: decision.reason
+    };
+    const result = await ticketsCollection.insertOne(ticketDoc);
+    savedTicket = { ...ticketDoc, id: result.insertedId.toString() };
+    decision.response = `I have created a support ticket for you. Ticket Number: ${ticketNo}. ${decision.response}`;
+  }
+
+
+  return {
+    response: decision.response,
+    retrievedDocuments: chatDoc.retrievedDocuments,
+    appointment: decision.appointment,
+    query_ticket: decision.query_ticket,
+    savedAppointment,
+    savedTicket,
+    details: decision.details || null,
+    reason: decision.reason,
+  };
 };

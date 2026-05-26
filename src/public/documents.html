@@ -3,61 +3,281 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Documents â€” LangChain</title>
+  <title>Documents — LangChain</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
-    .grid{display:grid;grid-template-columns:1fr 320px;gap:16px}
-    .doc-list{max-height:560px;overflow:auto;padding:8px}
-    .doc-item{padding:10px;border-radius:8px;border:1px solid #eef2ff;background:#fbfeff;margin-bottom:8px}
-    label{display:block;margin-bottom:8px;font-size:13px;color:#334155}
-    input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef8}
-    .small{font-size:13px;color:#64748b}
+    :root {
+      --bg: #f3f6fb;
+      --surface: rgba(255, 255, 255, 0.96);
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #4338ca;
+      --border: rgba(99, 102, 241, 0.12);
+      --shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 60%, #ffffff 100%);
+    }
+
+    .page-shell {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 1.9rem;
+      letter-spacing: -0.03em;
+    }
+
+    .topbar p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.6;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a,
+    .ghost-btn {
+      text-decoration: none;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-weight: 800;
+      border: 1px solid rgba(67, 56, 202, 0.12);
+      background: rgba(255, 255, 255, 0.9);
+      color: #312e81;
+    }
+
+    .ghost-btn {
+      cursor: pointer;
+      background: rgba(67, 56, 202, 0.08);
+      border: 1px solid rgba(67, 56, 202, 0.18);
+    }
+
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 1.25rem;
+    }
+
+    .panel p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .document-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 560px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .doc-item {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(99, 102, 241, 0.1);
+      background: #f8fafc;
+    }
+
+    .doc-item strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .doc-item small {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .upload-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #0f172a;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(99, 102, 241, 0.14);
+      padding: 12px 14px;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .primary-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--primary), #6366f1);
+      color: #fff;
+      font-size: 0.98rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .status-line {
+      margin-top: 14px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .empty-state {
+      padding: 18px;
+      border-radius: 16px;
+      background: rgba(248, 250, 252, 0.9);
+      color: var(--muted);
+      border: 1px dashed rgba(99, 102, 241, 0.14);
+    }
+
+    @media (max-width: 920px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="header-inner">
-      <h1>Documents</h1>
-      <nav class="toolbar">
-        <a href="/chat.html">AI Chat</a>
-        <a href="/documents.html">Documents</a>
-        <a href="/appointments.html">Appointments</a>
-        <a href="/tickets.html">Tickets</a>
-      </nav>
-      <div class="user-nav">
-        <span id="userBadge"></span>
-        <button id="logoutBtn" class="btn-logout">Logout</button>
-      </div>
-    </div>
-  </header>
-
-  <div class="container">
-    <div class="grid">
-      <div class="card" style="padding:16px">
-        <h3>Uploaded Documents</h3>
-        <div id="list" class="doc-list"></div>
+  <div class="page-shell">
+    <header class="topbar">
+      <div>
+        <h1>Document Library</h1>
+        <p>Upload new knowledge assets, review the latest content, and keep your AI assistant grounded in the information that matters most.</p>
       </div>
 
-      <div class="card" style="padding:16px">
-        <h3>Upload</h3>
-        <label>Title <input id="title" /></label>
-        <label>Source <input id="source" placeholder="manual"/></label>
-        <label>Text <textarea id="text" rows="8"></textarea></label>
-        <label>File <input id="file" type="file" accept=".txt,.pdf,.doc,.docx,.png,.jpg,.jpeg"/></label>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button id="upload" class="button-primary">Upload</button>
-          <button id="refresh" class="small">Refresh</button>
+      <div>
+        <div class="user-pill">?? <span id="userBadge"></span></div>
+        <div class="nav-links" style="margin-top: 12px; justify-content: flex-end;">
+          <a href="/chat.html">AI Chat</a>
+          <a href="/documents.html">Documents</a>
+          <a href="/appointments.html">Appointments</a>
         </div>
-        <div id="status" class="small" style="margin-top:10px"></div>
       </div>
-    </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <h2>Uploaded documents</h2>
+        <p>Recent files and manual entries are shown here. These are the documents the chat experience will use to answer retrieval-based questions.</p>
+        <div id="list" class="document-list">
+          <div class="empty-state">Loading your documents…</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Upload a new document</h2>
+        <p>Add manual text or import a .txt file so the assistant can use it during chat sessions.</p>
+
+        <div class="upload-grid">
+          <div>
+            <label for="title">Title</label>
+            <input id="title" type="text" placeholder="Q1 support playbook" />
+          </div>
+
+          <div>
+            <label for="source">Source</label>
+            <input id="source" type="text" placeholder="manual" />
+          </div>
+
+          <div>
+            <label for="text">Content</label>
+            <textarea id="text" placeholder="Paste or type the document content here..."></textarea>
+          </div>
+
+          <div>
+            <label for="file">Import .txt</label>
+            <input id="file" type="file" accept=".txt" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="upload" class="primary-btn" type="button">Upload</button>
+          <button id="refresh" class="ghost-btn" type="button">Refresh</button>
+        </div>
+
+        <div id="status" class="status-line"></div>
+      </section>
+    </main>
   </div>
 
   <script src="/script.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.5.1/mammoth.browser.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <script>
+    const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+
+    if (!currentUser) {
+      window.location.href = '/';
+    }
+
     const listEl = document.getElementById('list');
     const titleEl = document.getElementById('title');
     const sourceEl = document.getElementById('source');
@@ -66,93 +286,109 @@
     const statusEl = document.getElementById('status');
     const uploadBtn = document.getElementById('upload');
     const refreshBtn = document.getElementById('refresh');
+    const userBadge = document.getElementById('userBadge');
 
-    // Initialize PDF.js worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
+    userBadge.textContent = `${currentUser.name} • ${currentUser.email}`;
 
-    async function loadDocs(){
-      listEl.innerHTML = 'Loading...';
-      try{
-        const resp = await fetch(`/documents?userId=${encodeURIComponent(currentUser?.id)}`);
-        const data = await resp.json();
-        if(!data.documents.length){ listEl.innerHTML = '<div class="small">No documents yet.</div>'; return }
-        listEl.innerHTML = '';
-        data.documents.forEach(d=>{
-          const div = document.createElement('div');
-          div.className = 'doc-item';
-          div.innerHTML = `<strong>${escapeHtml(d.title)}</strong><div class="small">${escapeHtml(d.source)} Â· ${d.length} chars</div>`;
-          listEl.appendChild(div);
-        });
-      }catch(err){ listEl.innerHTML = 'Failed to load documents.' }
+    function escapeHtml(value) {
+      return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
     }
 
-    async function extractTextFromFile(file) {
-      const extension = file.name.split('.').pop().toLowerCase();
-      statusEl.textContent = `Processing ${extension.toUpperCase()} file...`;
+    async function loadDocs() {
+      listEl.innerHTML = '<div class="empty-state">Loading your documents…</div>';
 
-      if (extension === 'txt') {
-        return new Promise((res, rej) => {
-          const reader = new FileReader();
-          reader.onload = () => res(reader.result);
-          reader.onerror = rej;
-          reader.readAsText(file);
-        });
-      }
+      try {
+        const resp = await fetch(`/documents?userId=${encodeURIComponent(currentUser.id)}`);
+        const data = await resp.json();
 
-      if (extension === 'pdf') {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let text = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          text += content.items.map(item => item.str).join(' ') + '\n';
+        if (!resp.ok) {
+          throw new Error(data.error || 'Failed to load documents.');
         }
-        return text;
+
+        if (!data.documents.length) {
+          listEl.innerHTML = '<div class="empty-state">No documents have been uploaded yet.</div>';
+          return;
+        }
+
+        listEl.innerHTML = '';
+        data.documents.forEach((doc) => {
+          const div = document.createElement('div');
+          div.className = 'doc-item';
+          div.innerHTML = `
+            <strong>${escapeHtml(doc.title)}</strong>
+            <small>${escapeHtml(doc.source)} · ${doc.length} characters · ${new Date(doc.uploadedAt).toLocaleString()}</small>
+          `;
+          listEl.appendChild(div);
+        });
+      } catch (error) {
+        listEl.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    async function readFile(file) {
+      if (!file) {
+        return '';
       }
 
-      if (extension === 'docx' || extension === 'doc') {
-        const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        return result.value;
-      }
-
-      if (['png', 'jpg', 'jpeg'].includes(extension)) {
-        statusEl.textContent = 'Running OCR on image (this may take a moment)...';
-        const result = await Tesseract.recognize(file, 'eng');
-        return result.data.text;
-      }
-
-      throw new Error('Unsupported file type');
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.toString());
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(file, 'UTF-8');
+      });
     }
 
     fileEl.addEventListener('change', async () => {
       const file = fileEl.files?.[0];
-      if (!file) return;
+      if (!file) {
+        return;
+      }
 
+      statusEl.textContent = `Reading ${file.name}…`;
       try {
-        const text = await extractTextFromFile(file);
-        textEl.value = text;
-        if (!titleEl.value) titleEl.value = file.name;
-        statusEl.textContent = `Successfully extracted text from ${file.name}`;
+        textEl.value = await readFile(file);
+        statusEl.textContent = `Loaded ${file.name}`;
       } catch (error) {
-        console.error(error);
-        statusEl.textContent = `Error: ${error.message}`;
+        statusEl.textContent = 'Failed to read file.';
       }
     });
 
-    uploadBtn.addEventListener('click', async ()=>{
-      const title = titleEl.value.trim(); const source = sourceEl.value.trim()||'manual'; const text = textEl.value.trim();
-      if(!title||!text){ statusEl.textContent='Provide title and text.'; return }
-      uploadBtn.disabled = true; statusEl.textContent='Uploading...';
-      try{
-        const resp = await fetch('/upload',{ method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify({ title, source, text, userId: currentUser.id }) });
-        const data = await resp.json(); if(!resp.ok) throw new Error(data.error||'Upload failed');
+    uploadBtn.addEventListener('click', async () => {
+      const title = titleEl.value.trim();
+      const source = sourceEl.value.trim() || 'manual';
+      const text = textEl.value.trim();
+
+      if (!title || !text) {
+        statusEl.textContent = 'Provide both a title and document text.';
+        return;
+      }
+
+      uploadBtn.disabled = true;
+      statusEl.textContent = 'Uploading…';
+
+      try {
+        const resp = await fetch('/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, source, text, userId: currentUser.id }),
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.error || 'Upload failed.');
+        }
+
         statusEl.textContent = `Uploaded ${data.document.title}`;
-        titleEl.value=''; sourceEl.value=''; textEl.value=''; fileEl.value='';
+        titleEl.value = '';
+        sourceEl.value = '';
+        textEl.value = '';
+        fileEl.value = '';
         await loadDocs();
-      }catch(e){ statusEl.textContent = e.message||'Upload failed.' }
-      finally{ uploadBtn.disabled=false }
+      } catch (error) {
+        statusEl.textContent = error.message;
+      } finally {
+        uploadBtn.disabled = false;
+      }
     });
 
     refreshBtn.addEventListener('click', loadDocs);

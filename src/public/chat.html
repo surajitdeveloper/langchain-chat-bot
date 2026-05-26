@@ -3,90 +3,378 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat â€” LangChain</title>
-  <link rel="stylesheet" href="/style.css" />
+  <title>AI Chat — LangChain</title>
   <style>
-    .chat-card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 20px rgba(16,24,40,0.06)}
-    .messages{height:420px;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
-    .msg{max-width:78%;padding:12px 14px;border-radius:12px;line-height:1.45;white-space:pre-wrap}
-    .msg.assistant{background:#eef2ff;color:#0f172a;align-self:flex-start;border-top-left-radius:4px}
-    .msg.user{background:#e6fffa;color:#064e3b;align-self:flex-end;border-top-right-radius:4px;text-align:right}
-    .meta{font-size:12px;color:var(--muted);margin-top:6px}
-    .input-row{display:flex;gap:12px;margin-top:12px}
-    .input-row input{flex:1;padding:12px;border-radius:10px;border:1px solid #e6edf6}
-    .input-row button{background:var(--primary);color:#fff;border:none;padding:0 18px;border-radius:10px;cursor:pointer}
-    .sources{margin-top:12px;font-size:13px;color:var(--muted);}
-    .source-item{background:#fafafa;border:1px solid #eef2ff;padding:10px;border-radius:8px;margin-bottom:8px}
-    footer{max-width:960px;margin:18px auto;padding:0 16px;color:var(--muted);font-size:13px}
+    :root {
+      --bg: #f3f6fb;
+      --surface: rgba(255, 255, 255, 0.96);
+      --surface-strong: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #4338ca;
+      --primary-strong: #312e81;
+      --accent: #0f172a;
+      --border: rgba(99, 102, 241, 0.14);
+      --shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+      --success: #0f9f6e;
+      --danger: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.16), transparent 22%),
+        linear-gradient(180deg, #eef2ff 0%, #f8fafc 55%, #ffffff 100%);
+    }
+
+    .page-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .brand-block h1 {
+      margin: 0;
+      font-size: 1.9rem;
+      letter-spacing: -0.04em;
+    }
+
+    .brand-block p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      max-width: 720px;
+      line-height: 1.6;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 14px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--primary-strong);
+      font-weight: 700;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(67, 56, 202, 0.12);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      transform: translateY(-1px);
+      background: rgba(224, 231, 255, 0.92);
+    }
+
+    .ghost-btn {
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(67, 56, 202, 0.1);
+      color: var(--primary-strong);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .chat-panel {
+      padding: 22px;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .status-chip[data-state="online"] {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-chip[data-state="offline"] {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .messages {
+      height: 420px;
+      overflow-y: auto;
+      padding: 18px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(241, 245, 249, 0.92));
+      border: 1px solid rgba(99, 102, 241, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .msg {
+      max-width: 82%;
+      padding: 12px 14px;
+      border-radius: 18px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #3730a3, #4338ca);
+      color: #fff;
+      border-bottom-right-radius: 6px;
+    }
+
+    .msg.assistant {
+      align-self: flex-start;
+      background: #ffffff;
+      color: var(--text);
+      border: 1px solid rgba(99, 102, 241, 0.1);
+      border-bottom-left-radius: 6px;
+    }
+
+    .composer {
+      margin-top: 18px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .composer input {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid rgba(99, 102, 241, 0.14);
+      background: rgba(255, 255, 255, 0.94);
+      padding: 14px 16px;
+      font: inherit;
+      color: var(--text);
+    }
+
+    .primary-btn {
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--primary), #6366f1);
+      color: #fff;
+      padding: 0 22px;
+      font-size: 0.98rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .footer-note {
+      margin-top: 12px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .sources-panel {
+      padding: 22px;
+    }
+
+    .source-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .source-item {
+      padding: 14px;
+      border-radius: 18px;
+      background: #f8fafc;
+      border: 1px solid rgba(99, 102, 241, 0.12);
+    }
+
+    .source-item strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .source-item small {
+      display: block;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .empty-state {
+      padding: 18px;
+      border-radius: 16px;
+      color: var(--muted);
+      background: rgba(248, 250, 252, 0.9);
+      border: 1px dashed rgba(99, 102, 241, 0.14);
+    }
+
+    .assistant-note {
+      margin-top: 8px;
+      font-size: 0.88rem;
+      color: #166534;
+      background: #f0fdf4;
+      padding: 8px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    @media (max-width: 920px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .messages {
+        height: 360px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-shell {
+        padding: 20px 14px 32px;
+      }
+
+      .composer {
+        flex-direction: column;
+      }
+
+      .primary-btn {
+        width: 100%;
+        min-height: 48px;
+      }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="header-inner">
-      <h1>Professional Chat</h1>
-      <nav class="toolbar">
-        <a href="/chat.html">AI Chat</a>
-        <a href="/documents.html">Documents</a>
-        <a href="/appointments.html">Appointments</a>
-        <a href="/tickets.html">Tickets</a>
-      </nav>
-      <div class="user-nav">
-        <span id="userBadge"></span>
-        <button id="logoutBtn" class="btn-logout">Logout</button>
-      </div>
-    </div>
-  </header>
-
-  <main class="container">
-    <div class="chat-card">
-      <div class="messages" id="messages" aria-live="polite"></div>
-
-      <div class="meta">Tip: include context or ask follow-up questions</div>
-
-      <div class="input-row">
-        <input id="messageInput" placeholder="Ask anything..." autocomplete="off" />
-        <button id="sendBtn">Send</button>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <h1>AI Chat Assistant</h1>
+        <p>Securely chat with your documents and store appointment details in the system using a realtime Socket.IO connection.</p>
       </div>
 
-      <div class="sources" id="sources" hidden>
-        <strong>Sources:</strong>
-        <div id="sourcesList"></div>
+      <div class="header-actions">
+        <div class="user-pill">?? <span id="userBadge"></span></div>
+        <nav class="nav-links">
+          <a href="/chat.html">AI Chat</a>
+          <a href="/documents.html">Documents</a>
+          <a href="/appointments.html">Appointments</a>
+        </nav>
+        <button id="logoutBtn" class="ghost-btn" type="button">Logout</button>
       </div>
-    </div>
-  </main>
+    </header>
 
-  <footer>Running OpenAI-powered assistant Â· <a href="/" style="color:inherit;text-decoration:underline">Home</a></footer>
+    <main class="layout">
+      <section class="panel chat-panel">
+        <div class="status-row">
+          <div>
+            <h2>Realtime conversation</h2>
+            <p style="margin: 6px 0 0; color: var(--muted);">Your responses are streamed through Socket.IO for faster interactions.</p>
+          </div>
+          <div id="connectionStatus" class="status-chip" data-state="offline">Connecting…</div>
+        </div>
 
-  <script src="/script.js"></script>
+        <div class="messages" id="messages" aria-live="polite"></div>
+
+        <div class="composer">
+          <input id="messageInput" type="text" autocomplete="off" placeholder="Ask a question or describe the appointment details you need" disabled />
+          <button id="sendBtn" class="primary-btn" type="button" disabled>Send</button>
+        </div>
+
+        <div class="footer-note">Tip: share client details such as name, email, phone, and preferred time to create an appointment request.</div>
+      </section>
+
+      <aside class="panel sources-panel">
+        <h2>Knowledge Sources</h2>
+        <p>The assistant will surface the most relevant document matches alongside its response.</p>
+        <div id="sourceList" class="source-list">
+          <div class="empty-state">Awaiting a chat request to load relevant sources.</div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
   <script>
+    const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+
+    if (!currentUser) {
+      window.location.href = '/';
+    }
+
+    const userBadge = document.getElementById('userBadge');
+    const logoutBtn = document.getElementById('logoutBtn');
     const messagesEl = document.getElementById('messages');
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
-    const sourcesEl = document.getElementById('sources');
-    const sourcesList = document.getElementById('sourcesList');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const sourceList = document.getElementById('sourceList');
 
-    function appendMessage(text, cls) {
-      const wrap = document.createElement('div');
-      wrap.className = 'msg ' + cls;
-      wrap.textContent = text;
-      messagesEl.appendChild(wrap);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
+    userBadge.textContent = `${currentUser.name} • ${currentUser.email}`;
 
-    function showSources(docs){
-      sourcesList.innerHTML = '';
-      if(!docs || !docs.length){ sourcesEl.hidden = true; return }
-      docs.forEach(d=>{
-        const div = document.createElement('div');
-        div.className = 'source-item';
-        div.innerHTML = `<strong>${escapeHtml(d.title)}</strong><div style="font-size:12px;color:#475569">${escapeHtml(d.source)}</div>`;
-        sourcesList.appendChild(div);
-      });
-      sourcesEl.hidden = false;
-    }
-
-    sendBtn.addEventListener('click', sendMessage);
-    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); sendMessage(); } });
+    logoutBtn.addEventListener('click', () => {
+      sessionStorage.removeItem('currentUser');
+      window.location.href = '/';
+    });
 
     const history = [];
     let appointmentDetails = {
@@ -94,70 +382,178 @@
       email: null,
       phone: null,
       appointmentDateTime: null,
-      query: null
+      query: null,
     };
 
-    async function sendMessage(){
-      const text = input.value.trim();
-      if(!text) return;
-      appendMessage(text,'user');
-      input.value = '';
-      sendBtn.disabled = true;
+    let serverUrl = window.location.origin;
+    let socket = null;
 
-      appendMessage('Thinking...','assistant');
-      const lastAssistant = messagesEl.querySelector('.msg.assistant:last-child');
+    function escapeHtml(value) {
+      return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    }
 
-      try{
-        const resp = await fetch('/chat', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ message: text, history: history, appointmentDetails: appointmentDetails, userId: currentUser.id })
-        });
-        const data = await resp.json();
-        if(!resp.ok) throw new Error(data.error || 'Chat failed');
-        // replace 'Thinking...' with actual answer
-        if(lastAssistant) lastAssistant.textContent = data.response || JSON.stringify(data);
-        
-        // Push user and assistant response to history
-        history.push({ role: 'user', content: text });
+    function appendMessage(text, cls) {
+      const bubble = document.createElement('div');
+      bubble.className = `msg ${cls}`;
+      bubble.textContent = text;
+      messagesEl.appendChild(bubble);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function setConnectionState(isConnected) {
+      connectionStatus.dataset.state = isConnected ? 'online' : 'offline';
+      connectionStatus.textContent = isConnected ? 'Connected' : 'Disconnected';
+      input.disabled = !isConnected;
+      sendBtn.disabled = !isConnected;
+    }
+
+    function showSources(docs) {
+      sourceList.innerHTML = '';
+
+      if (!docs || !docs.length) {
+        sourceList.innerHTML = '<div class="empty-state">No sources were retrieved for this message.</div>';
+        return;
+      }
+
+      docs.forEach((doc) => {
+        const item = document.createElement('div');
+        item.className = 'source-item';
+        item.innerHTML = `
+          <strong>${escapeHtml(doc.title)}</strong>
+          <small>${escapeHtml(doc.source)} · score ${Number(doc.score || 0).toFixed(3)}</small>
+        `;
+        sourceList.appendChild(item);
+      });
+    }
+
+    function createSocket() {
+      if (socket) {
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
+
+      socket = io(serverUrl, {
+        transports: ['websocket', 'polling'],
+      });
+
+      socket.on('connect', () => {
+        setConnectionState(true);
+      });
+
+      socket.on('disconnect', () => {
+        setConnectionState(false);
+      });
+
+      socket.on('connect_error', () => {
+        setConnectionState(false);
+      });
+
+      socket.on('chat:response', (data) => {
+        const lastAssistant = messagesEl.querySelector('.msg.assistant:last-child');
+        if (lastAssistant) {
+          lastAssistant.textContent = data.response || JSON.stringify(data);
+        }
+
+        history.push({ role: 'user', content: currentMessageText });
         history.push({ role: 'assistant', content: data.response || '' });
 
-        // Update local appointment details state
-        if(data.details) {
+        if (data.details) {
           appointmentDetails = {
             clientName: data.details.clientName || appointmentDetails.clientName,
             email: data.details.email || appointmentDetails.email,
             phone: data.details.phone || appointmentDetails.phone,
             appointmentDateTime: data.details.appointmentDateTime || appointmentDetails.appointmentDateTime,
-            query: data.details.query || appointmentDetails.query
+            query: data.details.query || appointmentDetails.query,
           };
         }
 
-        // Reset if booking completes
-        if(data.appointment) {
+        if (data.appointment) {
           appointmentDetails = {
             clientName: null,
             email: null,
             phone: null,
             appointmentDateTime: null,
-            query: null
+            query: null,
           };
         }
 
         showSources(data.retrievedDocuments || []);
-        // Show save indicator only for technical queries
-        if(data.saved) {
-          const saveIndicator = document.createElement('div');
-          saveIndicator.style.fontSize = '11px';
-          saveIndicator.style.color = '#10b981';
-          saveIndicator.style.marginTop = '4px';
-          saveIndicator.textContent = 'âœ“ Technical query saved to database';
-          if(lastAssistant) lastAssistant.appendChild(saveIndicator);
+
+        if (data.savedAppointment) {
+          const note = document.createElement('div');
+          note.className = 'assistant-note';
+          note.textContent = `Appointment saved successfully for ${data.savedAppointment.clientName || 'the client'}.`;
+          if (lastAssistant) {
+            lastAssistant.appendChild(note);
+          }
         }
-      }catch(err){
-        if(lastAssistant) lastAssistant.textContent = err.message || 'Error';
-      }finally{ sendBtn.disabled = false }
+
+        sendBtn.disabled = false;
+      });
+
+      socket.on('chat:error', (data) => {
+        const lastAssistant = messagesEl.querySelector('.msg.assistant:last-child');
+        if (lastAssistant) {
+          lastAssistant.textContent = data.error || 'Chat failed';
+        }
+        sendBtn.disabled = false;
+      });
     }
+
+    let currentMessageText = '';
+
+    async function loadServerConfig() {
+      try {
+        const response = await fetch('/script.json', { cache: 'no-store' });
+        const data = await response.json();
+        if (data?.server_url) {
+          serverUrl = data.server_url;
+        }
+      } catch (error) {
+        // Keep the fallback origin if the config file is unavailable.
+      }
+    }
+
+    async function initializeChat() {
+      await loadServerConfig();
+      createSocket();
+      setConnectionState(false);
+      appendMessage('Hello! I am ready to help with your documents, questions, and appointment scheduling.', 'assistant');
+    }
+
+    sendBtn.addEventListener('click', () => sendMessage());
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    function sendMessage() {
+      const text = input.value.trim();
+      if (!text || !socket || !socket.connected) {
+        if (!socket || !socket.connected) {
+          appendMessage('The chat connection is not ready yet. Please wait and try again.', 'assistant');
+        }
+        return;
+      }
+
+      currentMessageText = text;
+      appendMessage(text, 'user');
+      input.value = '';
+      sendBtn.disabled = true;
+      appendMessage('Thinking…', 'assistant');
+
+      socket.emit('chat:send', {
+        message: text,
+        history,
+        appointmentDetails,
+        userId: currentUser.id,
+      });
+    }
+
+    initializeChat();
   </script>
 </body>
 </html>

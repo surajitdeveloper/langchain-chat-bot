@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AI Chat — LangChain</title>
+  <title>AI Chat ï¿½ LangChain</title>
   <style>
     :root {
       --bg: #f3f6fb;
@@ -330,7 +330,7 @@
             <h2>Realtime conversation</h2>
             <p style="margin: 6px 0 0; color: var(--muted);">Your responses are streamed through Socket.IO for faster interactions.</p>
           </div>
-          <div id="connectionStatus" class="status-chip" data-state="offline">Connecting…</div>
+          <div id="connectionStatus" class="status-chip" data-state="offline">Connectingï¿½</div>
         </div>
 
         <div class="messages" id="messages" aria-live="polite"></div>
@@ -369,7 +369,7 @@
     const connectionStatus = document.getElementById('connectionStatus');
     const sourceList = document.getElementById('sourceList');
 
-    userBadge.textContent = `${currentUser.name} • ${currentUser.email}`;
+    userBadge.textContent = `${currentUser.name} ï¿½ ${currentUser.email}`;
 
     logoutBtn.addEventListener('click', () => {
       sessionStorage.removeItem('currentUser');
@@ -420,7 +420,7 @@
         item.className = 'source-item';
         item.innerHTML = `
           <strong>${escapeHtml(doc.title)}</strong>
-          <small>${escapeHtml(doc.source)} · score ${Number(doc.score || 0).toFixed(3)}</small>
+          <small>${escapeHtml(doc.source)} ï¿½ score ${Number(doc.score || 0).toFixed(3)}</small>
         `;
         sourceList.appendChild(item);
       });
@@ -449,6 +449,10 @@
       });
 
       socket.on('chat:response', (data) => {
+        if (data?.clientSocketId && data.clientSocketId !== socket.id) {
+          return;
+        }
+
         const lastAssistant = messagesEl.querySelector('.msg.assistant:last-child');
         if (lastAssistant) {
           lastAssistant.textContent = data.response || JSON.stringify(data);
@@ -543,13 +547,14 @@
       appendMessage(text, 'user');
       input.value = '';
       sendBtn.disabled = true;
-      appendMessage('Thinking…', 'assistant');
+      appendMessage('Thinkingâ€¦', 'assistant');
 
       socket.emit('chat:send', {
         message: text,
         history,
         appointmentDetails,
         userId: currentUser.id,
+        clientSocketId: socket.id,
       });
     }
 

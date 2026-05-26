@@ -294,11 +294,23 @@ Respond only in valid JSON with these keys:
 const registerSocketHandlers = (io) => {
   io.on("connection", (socket) => {
     console.log(`Socket connected: ${socket.id}`);
+    socket.data.clientSocketId = socket.id;
 
     socket.on("chat:send", async (payload = {}) => {
       try {
+        const requestedSocketId = payload?.clientSocketId;
+        if (requestedSocketId && requestedSocketId !== socket.id) {
+          socket.emit("chat:error", {
+            error: "Invalid client socket id for this request.",
+          });
+          return;
+        }
+
         const result = await processChatRequest(payload);
-        socket.emit("chat:response", result);
+        io.to(socket.id).emit("chat:response", {
+          ...result,
+          clientSocketId: socket.id,
+        });
       } catch (error) {
         console.error("Socket chat error:", error);
         socket.emit("chat:error", {

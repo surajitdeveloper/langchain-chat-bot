@@ -4,208 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Documents � LangChain</title>
-  <link rel="stylesheet" href="/style.css" />
-  <style>
-    :root {
-      --bg: #f3f6fb;
-      --surface: rgba(255, 255, 255, 0.96);
-      --text: #0f172a;
-      --muted: #475569;
-      --primary: #4338ca;
-      --border: rgba(99, 102, 241, 0.12);
-      --shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
-    }
+  <link rel="stylesheet" href="style.css" />
 
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      color: var(--text);
-      background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 60%, #ffffff 100%);
-    }
-
-    .page-shell {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 28px 20px 40px;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: 24px;
-    }
-
-    .topbar h1 {
-      margin: 0;
-      font-size: 1.9rem;
-      letter-spacing: -0.03em;
-    }
-
-    .topbar p {
-      margin: 6px 0 0;
-      color: var(--muted);
-      max-width: 760px;
-      line-height: 1.6;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .nav-links a,
-    .ghost-btn {
-      text-decoration: none;
-      padding: 10px 16px;
-      border-radius: 999px;
-      font-weight: 800;
-      border: 1px solid rgba(67, 56, 202, 0.12);
-      background: rgba(255, 255, 255, 0.9);
-      color: #312e81;
-    }
-
-    .ghost-btn {
-      cursor: pointer;
-      background: rgba(67, 56, 202, 0.08);
-      border: 1px solid rgba(67, 56, 202, 0.18);
-    }
-
-    .user-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-      gap: 20px;
-    }
-
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-      padding: 22px;
-    }
-
-    .panel h2 {
-      margin: 0 0 8px;
-      font-size: 1.25rem;
-    }
-
-    .panel p {
-      margin: 0 0 18px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    .document-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      max-height: 560px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-
-    .doc-item {
-      padding: 14px 16px;
-      border-radius: 18px;
-      border: 1px solid rgba(99, 102, 241, 0.1);
-      background: #f8fafc;
-    }
-
-    .doc-item strong {
-      display: block;
-      margin-bottom: 6px;
-    }
-
-    .doc-item small {
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .upload-grid {
-      display: grid;
-      gap: 12px;
-    }
-
-    label {
-      display: block;
-      font-weight: 800;
-      margin-bottom: 8px;
-      color: #0f172a;
-    }
-
-    input,
-    textarea {
-      width: 100%;
-      border-radius: 14px;
-      border: 1px solid rgba(99, 102, 241, 0.14);
-      padding: 12px 14px;
-      font: inherit;
-      color: var(--text);
-      background: #fff;
-    }
-
-    textarea {
-      min-height: 180px;
-      resize: vertical;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 14px;
-      flex-wrap: wrap;
-    }
-
-    .primary-btn {
-      border: none;
-      border-radius: 14px;
-      padding: 12px 18px;
-      background: linear-gradient(135deg, var(--primary), #6366f1);
-      color: #fff;
-      font-size: 0.98rem;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .status-line {
-      margin-top: 14px;
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    .empty-state {
-      padding: 18px;
-      border-radius: 16px;
-      background: rgba(248, 250, 252, 0.9);
-      color: var(--muted);
-      border: 1px dashed rgba(99, 102, 241, 0.14);
-    }
-
-    @media (max-width: 920px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
 </head>
 <body>
   <div class="page-shell">
@@ -261,8 +61,8 @@
         </div>
 
         <div class="actions">
-          <button id="upload" class="primary-btn" type="button">Upload</button>
-          <button id="refresh" class="ghost-btn" type="button">Refresh</button>
+          <button id="upload" class="button-primary" type="button">Upload</button>
+          <button id="refresh" class="button-ghost" type="button">Refresh</button>
         </div>
 
         <div id="status" class="status-line"></div>
@@ -272,57 +72,56 @@
 
   <script src="/script.js"></script>
   <script>
-    const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+    
 
     if (!currentUser) {
-      window.location.href = '/';
+      window.location.href = "/";
     }
 
-    const listEl = document.getElementById('list');
-    const titleEl = document.getElementById('title');
-    const sourceEl = document.getElementById('source');
-    const textEl = document.getElementById('text');
-    const fileEl = document.getElementById('file');
-    const statusEl = document.getElementById('status');
-    const uploadBtn = document.getElementById('upload');
-    const refreshBtn = document.getElementById('refresh');
-    const userBadge = document.getElementById('userBadge');
-    const navLinks = document.querySelector('.nav-links');
+    const listEl = document.getElementById("list");
+    const titleEl = document.getElementById("title");
+    const sourceEl = document.getElementById("source");
+    const textEl = document.getElementById("text");
+    const fileEl = document.getElementById("file");
+    const statusEl = document.getElementById("status");
+    const uploadBtn = document.getElementById("upload");
+    const refreshBtn = document.getElementById("refresh");
+    const userBadge = document.getElementById("userBadge");
+    const navLinks = document.querySelector(".nav-links");
 
     userBadge.textContent = `${currentUser.name} � ${currentUser.email}`;
 
-    const isAdminUser = currentUser?.email === 'admin@agentic.ai' || currentUser?.role === 'admin';
+    const isAdminUser = currentUser?.email === "admin@agentic.ai" || currentUser?.role === "admin";
     if (isAdminUser) {
-      const adminLink = document.createElement('a');
-      adminLink.href = '/admin.html';
-      adminLink.textContent = 'Admin';
+      const adminLink = document.createElement("a");
+      adminLink.href = "/admin.html";
+      adminLink.textContent = "Admin";
       navLinks.appendChild(adminLink);
     }
 
-    function escapeHtml(value) {
-      return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-    }
 
     async function loadDocs() {
-      listEl.innerHTML = '<div class="empty-state">Loading your documents�</div>';
+      console.log("CurrentUser:", currentUser);
+      console.log("Fetching documents for userId:", currentUser.id);
+      listEl.innerHTML = "<div class=\"empty-state\">Loading your documents�</div>";
 
       try {
         const resp = await fetch(`/documents?userId=${encodeURIComponent(currentUser.id)}`);
         const data = await resp.json();
 
         if (!resp.ok) {
-          throw new Error(data.error || 'Failed to load documents.');
+          throw new Error(data.error || "Failed to load documents.");
         }
 
         if (!data.documents.length) {
-          listEl.innerHTML = '<div class="empty-state">No documents have been uploaded yet.</div>';
+          listEl.innerHTML = "<div class=\"empty-state\">No documents have been uploaded yet.</div>";
           return;
         }
 
-        listEl.innerHTML = '';
+        listEl.innerHTML = "";
         data.documents.forEach((doc) => {
-          const div = document.createElement('div');
-          div.className = 'doc-item';
+          const div = document.createElement("div");
+          div.className = "doc-item";
           div.innerHTML = `
             <strong>${escapeHtml(doc.title)}</strong>
             <small>${escapeHtml(doc.source)} � ${doc.length} characters � ${new Date(doc.uploadedAt).toLocaleString()}</small>
@@ -330,24 +129,24 @@
           listEl.appendChild(div);
         });
       } catch (error) {
-        listEl.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+        listEl.innerHTML = `<div class=\"empty-state\">${escapeHtml(error.message)}</div>`;
       }
     }
 
     async function readFile(file) {
       if (!file) {
-        return '';
+        return "";
       }
 
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result.toString());
         reader.onerror = () => reject(reader.error);
-        reader.readAsText(file, 'UTF-8');
+        reader.readAsText(file, "UTF-8");
       });
     }
 
-    fileEl.addEventListener('change', async () => {
+    fileEl.addEventListener("change", async () => {
       const file = fileEl.files?.[0];
       if (!file) {
         return;
@@ -358,40 +157,40 @@
         textEl.value = await readFile(file);
         statusEl.textContent = `Loaded ${file.name}`;
       } catch (error) {
-        statusEl.textContent = 'Failed to read file.';
+        statusEl.textContent = "Failed to read file.";
       }
     });
 
-    uploadBtn.addEventListener('click', async () => {
+    uploadBtn.addEventListener("click", async () => {
       const title = titleEl.value.trim();
-      const source = sourceEl.value.trim() || 'manual';
+      const source = sourceEl.value.trim() || "manual";
       const text = textEl.value.trim();
 
       if (!title || !text) {
-        statusEl.textContent = 'Provide both a title and document text.';
+        statusEl.textContent = "Provide both a title and document text.";
         return;
       }
 
       uploadBtn.disabled = true;
-      statusEl.textContent = 'Uploading�';
+      statusEl.textContent = "Uploading�";
 
       try {
-        const resp = await fetch('/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const resp = await fetch("/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title, source, text, userId: currentUser.id }),
         });
 
         const data = await resp.json();
         if (!resp.ok) {
-          throw new Error(data.error || 'Upload failed.');
+          throw new Error(data.error || "Upload failed.");
         }
 
         statusEl.textContent = `Uploaded ${data.document.title}`;
-        titleEl.value = '';
-        sourceEl.value = '';
-        textEl.value = '';
-        fileEl.value = '';
+        titleEl.value = "";
+        sourceEl.value = "";
+        textEl.value = "";
+        fileEl.value = "";
         await loadDocs();
       } catch (error) {
         statusEl.textContent = error.message;
@@ -400,7 +199,7 @@
       }
     });
 
-    refreshBtn.addEventListener('click', loadDocs);
+    refreshBtn.addEventListener("click", loadDocs);
     loadDocs();
   </script>
 </body>

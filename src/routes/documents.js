@@ -6,7 +6,20 @@ const router = express.Router();
 
 router.get("/documents", async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userIdString = req.query.userId;
+    console.log("Type of userId from query string:", typeof userIdString);
+    console.log("Server received userId:", userIdString);
+
+    if (!userIdString) {
+      return res.status(401).json({ error: "Missing userId" });
+    }
+
+    let userId;
+    try {
+      userId = new ObjectId(userIdString);
+    } catch (error) {
+      return res.status(400).json({ error: "Invalid userId format." });
+    }
     if (!userId) {
       return res.status(401).json({ error: "Missing userId" });
     }
@@ -17,6 +30,7 @@ router.get("/documents", async (req, res) => {
       )
       .sort({ uploadedAt: -1 })
       .toArray();
+    console.log("Documents found for userId", userId, ":", docs.length);
     return res.json({
       documents: docs.map((doc) => ({
         id: doc._id.toString(),
@@ -33,6 +47,7 @@ router.get("/documents", async (req, res) => {
 });
 
 router.post("/upload", async (req, res) => {
+  console.log("Upload request body:", req.body);
   const { title, source, text, userId } = req.body;
   if (!title || !text || !userId) {
     return res
@@ -49,6 +64,7 @@ router.post("/upload", async (req, res) => {
       provider: "google",
       userId,
     };
+    console.log("Document object to be inserted:", document);
     const result = await documentsCollection.insertOne(document);
     return res.json({
       success: true,
